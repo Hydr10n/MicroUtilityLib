@@ -6,10 +6,12 @@
 #include <ShellAPI.h>
 #include <ShlObj.h>
 #include <Shlwapi.h>
+#include <WinInet.h>
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "User32.lib")
+#pragma comment(lib, "Wininet.lib")
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
@@ -22,6 +24,76 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 		break;
 	}
 	return TRUE;
+}
+
+BOOL DownloadFileFromInternet(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
+{
+	DWORD dwFlags;
+	if (InternetGetConnectedState(&dwFlags, NULL))
+	{
+		HINTERNET hInternetOpen = InternetOpenW(NULL, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+		if (hInternetOpen)
+		{
+			HINTERNET hInternetOpenUrl = InternetOpenUrlW(hInternetOpen, lpcwUrl, NULL, 0, INTERNET_FLAG_RELOAD, 0);
+			if (hInternetOpenUrl)
+			{
+				HANDLE hFile = CreateFileW(lpcwNewFileName, GENERIC_WRITE, 0, 0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+				if (hFile != INVALID_HANDLE_VALUE)
+				{
+					DWORD dwNumberOfBytesRead, dwNumberOfBytesWritten;
+					BYTE byteBuffer[1024];
+					while (InternetReadFile(hInternetOpenUrl, byteBuffer, sizeof(byteBuffer), &dwNumberOfBytesRead))
+					{
+						WriteFile(hFile, byteBuffer, dwNumberOfBytesRead, &dwNumberOfBytesWritten, NULL);
+						if (dwNumberOfBytesRead != sizeof(byteBuffer))
+						{
+							break;
+						}
+					}
+					CloseHandle(hFile);
+					return TRUE;
+				}
+				InternetCloseHandle(hInternetOpenUrl);
+			}
+			InternetCloseHandle(hInternetOpen);
+		}
+	}
+	return FALSE;
+}
+
+BOOL GetFileProductVersion(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cbFileProductVersionBufferSize)
+{
+	BOOL bSuccess = FALSE;
+	DWORD dwFileVersionInfoSize = GetFileVersionInfoSizeW(lpcwFileName, NULL);
+	if (lpwFileProductVersionBuffer && cbFileProductVersionBufferSize && dwFileVersionInfoSize)
+	{
+		HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
+		if (hHeap)
+		{
+			PVOID pvFileVersionInfo = HeapAlloc(hHeap, HEAP_NO_SERIALIZE, dwFileVersionInfoSize);
+			if (pvFileVersionInfo && GetFileVersionInfoW(lpcwFileName, 0, dwFileVersionInfoSize, pvFileVersionInfo))
+			{
+				struct {
+					WORD wLanguage, wCodePage;
+				} *lpTranslate;
+				UINT cbTranslationSize;
+				if (VerQueryValueW(pvFileVersionInfo, L"\\VarFileInfo\\Translation", &lpTranslate, &cbTranslationSize) && cbTranslationSize / sizeof(*lpTranslate) != 0)
+				{
+					UINT cbFileProductVersionSize;
+					LPWSTR lpwFileProductVersion;
+					WCHAR szSubBlock[50];
+					wnsprintfW(szSubBlock, _countof(szSubBlock), L"\\StringFileInfo\\%04X%04X\\ProductVersion", lpTranslate->wLanguage, lpTranslate->wCodePage);
+					if (VerQueryValueW(pvFileVersionInfo, szSubBlock, (PVOID*)&lpwFileProductVersion, &cbFileProductVersionSize))
+					{
+						wnsprintfW(lpwFileProductVersionBuffer, cbFileProductVersionBufferSize, lpwFileProductVersion);
+						bSuccess = TRUE;
+					}
+				}
+			}
+			HeapDestroy(hHeap);
+		}
+	}
+	return bSuccess;
 }
 
 BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine)
@@ -75,32 +147,20 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 					{
 						continue;
 					}
-					if (lpFindDiskData_Routine && lpFindDiskData_Routine(&Win32_FindData, lpwPathName, lpData) == PROGRESS_STOP)
-					{
-						while (TRUE)
-						{
-							FindClose(pFindData->hFindFile);
-							if ((pFindData = pFindData->Previous) == &FindData)
-							{
-								HeapDestroy(hHeap);
-								return TRUE;
-							}
-						}
-					}
 				}
 				else
 				{
 					wnsprintfW(lpwNewFileName, MAX_FILENAME, L"%ls%ls", lpwPathName, Win32_FindData.cFileName);
-					if (lpFindDiskData_Routine && lpFindDiskData_Routine(&Win32_FindData, lpwNewFileName, lpData) == PROGRESS_STOP)
+				}
+				if (lpFindDiskData_Routine && lpFindDiskData_Routine(&Win32_FindData, lpwPathName, lpData) == PROGRESS_STOP)
+				{
+					while (TRUE)
 					{
-						while (TRUE)
+						FindClose(pFindData->hFindFile);
+						if ((pFindData = pFindData->Previous) == &FindData)
 						{
-							FindClose(pFindData->hFindFile);
-							if ((pFindData = pFindData->Previous) == &FindData)
-							{
-								HeapDestroy(hHeap);
-								return TRUE;
-							}
+							HeapDestroy(hHeap);
+							return TRUE;
 						}
 					}
 				}
