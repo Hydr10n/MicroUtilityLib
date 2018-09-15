@@ -13,20 +13,21 @@
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Wininet.lib")
 
+#define ENABLE_WIN32_VISUAL_STYLES
+
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
 	switch (ul_reason_for_call)
 	{
-	case DLL_PROCESS_ATTACH:
-	case DLL_THREAD_ATTACH:
-	case DLL_THREAD_DETACH:
-	case DLL_PROCESS_DETACH:
-		break;
+	case DLL_PROCESS_ATTACH: break;
+	case DLL_THREAD_ATTACH: break;
+	case DLL_THREAD_DETACH: break;
+	case DLL_PROCESS_DETACH: break;
 	}
 	return TRUE;
 }
 
-BOOL DownloadFileFromInternet(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
+BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
 {
 	DWORD dwFlags;
 	if (InternetGetConnectedState(&dwFlags, NULL))
@@ -61,11 +62,11 @@ BOOL DownloadFileFromInternet(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
 	return FALSE;
 }
 
-BOOL GetFileProductVersion(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cbFileProductVersionBufferSize)
+BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
 {
 	BOOL bSuccess = FALSE;
 	DWORD dwFileVersionInfoSize = GetFileVersionInfoSizeW(lpcwFileName, NULL);
-	if (lpwFileProductVersionBuffer && cbFileProductVersionBufferSize && dwFileVersionInfoSize)
+	if (lpwFileProductVersionBuffer && cchFileProductVersionBuffer && dwFileVersionInfoSize)
 	{
 		HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 		if (hHeap)
@@ -85,7 +86,7 @@ BOOL GetFileProductVersion(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuf
 					wnsprintfW(szSubBlock, _countof(szSubBlock), L"\\StringFileInfo\\%04X%04X\\ProductVersion", lpTranslate->wLanguage, lpTranslate->wCodePage);
 					if (VerQueryValueW(pvFileVersionInfo, szSubBlock, (PVOID*)&lpwFileProductVersion, &cbFileProductVersionSize))
 					{
-						wnsprintfW(lpwFileProductVersionBuffer, cbFileProductVersionBufferSize, lpwFileProductVersion);
+						wnsprintfW(lpwFileProductVersionBuffer, cchFileProductVersionBuffer, lpwFileProductVersion);
 						bSuccess = TRUE;
 					}
 				}
@@ -101,14 +102,14 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 	HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 	if (hHeap)
 	{
-		LPWSTR lpwNewFileName = (LPWSTR)HeapAlloc(hHeap, HEAP_NO_SERIALIZE, MAX_FILENAME * sizeof(WCHAR)),
-			lpwPathName = (LPWSTR)HeapAlloc(hHeap, HEAP_NO_SERIALIZE, MAX_FILENAME * sizeof(WCHAR));
+		LPWSTR lpwNewFileName = (LPWSTR)HeapAlloc(hHeap, HEAP_NO_SERIALIZE, MAX_UNICODE_PATH * sizeof(WCHAR)),
+			lpwPathName = (LPWSTR)HeapAlloc(hHeap, HEAP_NO_SERIALIZE, MAX_UNICODE_PATH * sizeof(WCHAR));
 		if (lpwNewFileName == NULL || lpwPathName == NULL)
 		{
 			HeapDestroy(hHeap);
 			return FALSE;
 		}
-		wnsprintfW(lpwPathName, MAX_FILENAME, L"\\\\?\\%lc:", wchDriveLetter);
+		wnsprintfW(lpwPathName, MAX_UNICODE_PATH, L"\\\\?\\%lc:", wchDriveLetter);
 		struct _DATA {
 			INT iLengthOfPathName;
 			HANDLE hFindFile;
@@ -139,7 +140,7 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 						}
 					}
 					pFindData->Next->Previous = pFindData;
-					pFindData->Next->iLengthOfPathName = wnsprintfW(lpwPathName, MAX_FILENAME, L"%ls%ls\\*.*", lpwPathName, Win32_FindData.cFileName) - 3;
+					pFindData->Next->iLengthOfPathName = wnsprintfW(lpwPathName, MAX_UNICODE_PATH, L"%ls%ls\\*.*", lpwPathName, Win32_FindData.cFileName) - 3;
 					pFindData->Next->hFindFile = FindFirstFileW(lpwPathName, &Win32_FindData);
 					lpwPathName[pFindData->Next->iLengthOfPathName] = 0;
 					pFindData = pFindData->Next;
@@ -150,7 +151,7 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 				}
 				else
 				{
-					wnsprintfW(lpwNewFileName, MAX_FILENAME, L"%ls%ls", lpwPathName, Win32_FindData.cFileName);
+					wnsprintfW(lpwNewFileName, MAX_UNICODE_PATH, L"%ls%ls", lpwPathName, Win32_FindData.cFileName);
 				}
 				if (lpFindDiskData_Routine && lpFindDiskData_Routine(&Win32_FindData, lpwPathName, lpData) == PROGRESS_STOP)
 				{
