@@ -1,36 +1,25 @@
 //Copyright (C) 2018 Programmer-Yang_Xun@outlook.com
 
-#define MICROUTILITYLIB_API __declspec(dllexport)
+#define MICROUTILITYLIB_API extern __declspec(dllexport)
 #include "MicroUtilityLib.h"
 #include <Windows.h>
 #include <ShellAPI.h>
 #include <ShlObj.h>
 #include <Shlwapi.h>
+#include <TlHelp32.h>
 #include <WinInet.h>
+#pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "User32.lib")
+#pragma comment(lib, "Version.lib")
 #pragma comment(lib, "Wininet.lib")
-
-#define ENABLE_WIN32_VISUAL_STYLES
-
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
-{
-	switch (ul_reason_for_call)
-	{
-	case DLL_PROCESS_ATTACH: break;
-	case DLL_THREAD_ATTACH: break;
-	case DLL_THREAD_DETACH: break;
-	case DLL_PROCESS_DETACH: break;
-	}
-	return TRUE;
-}
 
 BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
 {
 	DWORD dwFlags;
-	if (InternetGetConnectedState(&dwFlags, NULL))
+	if (InternetGetConnectedState(&dwFlags, 0))
 	{
 		HINTERNET hInternetOpen = InternetOpenW(NULL, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
 		if (hInternetOpen)
@@ -60,41 +49,6 @@ BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
 		}
 	}
 	return FALSE;
-}
-
-BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
-{
-	BOOL bSuccess = FALSE;
-	DWORD dwFileVersionInfoSize = GetFileVersionInfoSizeW(lpcwFileName, NULL);
-	if (lpwFileProductVersionBuffer && cchFileProductVersionBuffer && dwFileVersionInfoSize)
-	{
-		HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
-		if (hHeap)
-		{
-			PVOID pvFileVersionInfo = HeapAlloc(hHeap, HEAP_NO_SERIALIZE, dwFileVersionInfoSize);
-			if (pvFileVersionInfo && GetFileVersionInfoW(lpcwFileName, 0, dwFileVersionInfoSize, pvFileVersionInfo))
-			{
-				struct {
-					WORD wLanguage, wCodePage;
-				} *lpTranslate;
-				UINT cbTranslationSize;
-				if (VerQueryValueW(pvFileVersionInfo, L"\\VarFileInfo\\Translation", &lpTranslate, &cbTranslationSize) && cbTranslationSize / sizeof(*lpTranslate) != 0)
-				{
-					UINT cbFileProductVersionSize;
-					LPWSTR lpwFileProductVersion;
-					WCHAR szSubBlock[50];
-					wnsprintfW(szSubBlock, _countof(szSubBlock), L"\\StringFileInfo\\%04X%04X\\ProductVersion", lpTranslate->wLanguage, lpTranslate->wCodePage);
-					if (VerQueryValueW(pvFileVersionInfo, szSubBlock, (PVOID*)&lpwFileProductVersion, &cbFileProductVersionSize))
-					{
-						wnsprintfW(lpwFileProductVersionBuffer, cchFileProductVersionBuffer, lpwFileProductVersion);
-						bSuccess = TRUE;
-					}
-				}
-			}
-			HeapDestroy(hHeap);
-		}
-	}
-	return bSuccess;
 }
 
 BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine)
@@ -185,6 +139,91 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 	}
 }
 
+BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
+{
+	BOOL bSuccess = FALSE;
+	DWORD dwFileVersionInfoSize = GetFileVersionInfoSizeW(lpcwFileName, NULL);
+	if (lpwFileProductVersionBuffer && cchFileProductVersionBuffer && dwFileVersionInfoSize)
+	{
+		HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
+		if (hHeap)
+		{
+			PVOID pvFileVersionInfo = HeapAlloc(hHeap, HEAP_NO_SERIALIZE, dwFileVersionInfoSize);
+			if (pvFileVersionInfo && GetFileVersionInfoW(lpcwFileName, 0, dwFileVersionInfoSize, pvFileVersionInfo))
+			{
+				struct {
+					WORD wLanguage, wCodePage;
+				} *lpTranslate;
+				UINT cbTranslationSize;
+				if (VerQueryValueW(pvFileVersionInfo, L"\\VarFileInfo\\Translation", &lpTranslate, &cbTranslationSize) && cbTranslationSize / sizeof(*lpTranslate) != 0)
+				{
+					UINT cbFileProductVersionSize;
+					LPWSTR lpwFileProductVersion;
+					WCHAR szSubBlock[50];
+					wnsprintfW(szSubBlock, _countof(szSubBlock), L"\\StringFileInfo\\%04X%04X\\ProductVersion", lpTranslate->wLanguage, lpTranslate->wCodePage);
+					if (VerQueryValueW(pvFileVersionInfo, szSubBlock, (PVOID*)&lpwFileProductVersion, &cbFileProductVersionSize))
+					{
+						wnsprintfW(lpwFileProductVersionBuffer, cchFileProductVersionBuffer, lpwFileProductVersion);
+						bSuccess = TRUE;
+					}
+				}
+			}
+			HeapDestroy(hHeap);
+		}
+	}
+	return bSuccess;
+}
+
+BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings)
+{
+	if (lpwStrings == NULL)
+	{
+		return FALSE;
+	}
+	BOOL bIsSwapped;
+	do {
+		bIsSwapped = FALSE;
+		for (DWORD dwIndex = 1; dwIndex < dwNumberOfStrings; dwIndex++)
+		{
+			INT iComparsionResult = StrCmpLogicalW(lpwStrings[dwIndex - 1], lpwStrings[dwIndex]);
+			if (iComparsionResult == 1)
+			{
+				bIsSwapped = TRUE;
+				LPWSTR lpwString = lpwStrings[dwIndex - 1];
+				lpwStrings[dwIndex - 1] = lpwStrings[dwIndex];
+				lpwStrings[dwIndex] = lpwString;
+			}
+		}
+	} while (bIsSwapped);
+	return TRUE;
+}
+
+DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound)
+{
+	if (lpwStrings == NULL)
+	{
+		return (DWORD)-1;
+	}
+	while (dwLowerBound <= dwUpperBound)
+	{
+		DWORD dwMiddle = (dwLowerBound + dwUpperBound) / 2;
+		INT iComparsionResult = StrCmpLogicalW(lpcwStringToFind, lpwStrings[dwMiddle]);
+		if (iComparsionResult == 1)
+		{
+			dwLowerBound = dwMiddle + 1;
+		}
+		else if (iComparsionResult == -1)
+		{
+			dwUpperBound = dwMiddle - 1;
+		}
+		else
+		{
+			return dwMiddle;
+		}
+	}
+	return (DWORD)-1;
+}
+
 DWORD GetFileCRC32W(LPCWSTR lpcwFileName)
 {
 	DWORD dwCRC32 = 0;
@@ -232,9 +271,9 @@ INT GetCurrentDpiX(VOID)
 {
 	INT iCurrentDpiX = USER_DEFAULT_SCREEN_DPI;
 	HDC hDC = GetDC(NULL);
-	SetProcessDPIAware();
 	if (hDC)
 	{
+		SetProcessDPIAware();
 		GetDeviceCaps(hDC, LOGPIXELSX);
 		iCurrentDpiX = GetDeviceCaps(hDC, LOGPIXELSX);
 		ReleaseDC(NULL, hDC);
@@ -246,10 +285,10 @@ INT GetCurrentDpiY(VOID)
 {
 	INT iCurrentDpiY = USER_DEFAULT_SCREEN_DPI;
 	HDC hDC = GetDC(NULL);
-	SetProcessDPIAware();
 	if (hDC)
 	{
-		GetDeviceCaps(hDC, LOGPIXELSX);
+		SetProcessDPIAware();
+		GetDeviceCaps(hDC, LOGPIXELSY);
 		iCurrentDpiY = GetDeviceCaps(hDC, LOGPIXELSY);
 		ReleaseDC(NULL, hDC);
 	}
