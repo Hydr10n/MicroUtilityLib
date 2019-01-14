@@ -1,4 +1,4 @@
-//Copyright (C) 2018 Programmer-Yang_Xun@outlook.com
+//Copyright (C) 2019 Programmer-Yang_Xun@outlook.com
 
 #define MICROUTILITYLIB_API extern __declspec(dllexport)
 #include "MicroUtilityLib.h"
@@ -16,7 +16,7 @@
 #pragma comment(lib, "Version.lib")
 #pragma comment(lib, "Wininet.lib")
 
-BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
+BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists)
 {
 	DWORD dwFlags;
 	if (InternetGetConnectedState(&dwFlags, 0))
@@ -24,10 +24,11 @@ BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
 		HINTERNET hInternetOpen = InternetOpenW(NULL, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
 		if (hInternetOpen)
 		{
+			BOOL bIsSuccess = FALSE;
 			HINTERNET hInternetOpenUrl = InternetOpenUrlW(hInternetOpen, lpcwUrl, NULL, 0, INTERNET_FLAG_RELOAD, 0);
 			if (hInternetOpenUrl)
 			{
-				HANDLE hFile = CreateFileW(lpcwNewFileName, GENERIC_WRITE, 0, 0, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+				HANDLE hFile = CreateFileW(lpcwNewFileName, GENERIC_WRITE, 0, 0, (bFailIfFileExists) ? (CREATE_NEW) : (CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL, 0);
 				if (hFile != INVALID_HANDLE_VALUE)
 				{
 					DWORD dwNumberOfBytesRead, dwNumberOfBytesWritten;
@@ -41,11 +42,12 @@ BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName)
 						}
 					}
 					CloseHandle(hFile);
-					return TRUE;
+					bIsSuccess = TRUE;
 				}
 				InternetCloseHandle(hInternetOpenUrl);
 			}
 			InternetCloseHandle(hInternetOpen);
+			return bIsSuccess;
 		}
 	}
 	return FALSE;
