@@ -1,13 +1,14 @@
-//Copyright (C) 2019 Programmer-Yang_Xun@outlook.com
+/*
+Source File: MicroUtilityLib.c
+Last Update: 2018/03/18
+Minimum Supported Client: Microsoft Windows Vista [Desktop Only]
+
+This project is hosted on https://github.com/Programmer-YangXun/MicroUtilityLib/
+Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
+*/
 
 #define MICROUTILITYLIB_API extern __declspec(dllexport)
 #include "MicroUtilityLib.h"
-#include <Windows.h>
-#include <ShellAPI.h>
-#include <ShlObj.h>
-#include <Shlwapi.h>
-#include <TlHelp32.h>
-#include <WinInet.h>
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "Shell32.lib")
@@ -16,7 +17,7 @@
 #pragma comment(lib, "Version.lib")
 #pragma comment(lib, "Wininet.lib")
 
-BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists)
+/*MICROUTILITYLIB_API*/ BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists)
 {
 	DWORD dwFlags;
 	if (InternetGetConnectedState(&dwFlags, 0))
@@ -53,8 +54,12 @@ BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bF
 	return FALSE;
 }
 
-BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine)
+/*MICROUTILITYLIB_API*/ BOOL FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine)
 {
+	if (lpcwPathName == NULL || *lpcwPathName == 0)
+	{
+		return FALSE;
+	}
 	HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 	if (hHeap)
 	{
@@ -65,7 +70,8 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 			HeapDestroy(hHeap);
 			return FALSE;
 		}
-		wnsprintfW(lpwPathName, MAX_UNICODE_PATH, L"\\\\?\\%lc:", wchDriveLetter);
+		wnsprintfW(lpwPathName, MAX_UNICODE_PATH, L"\\\\?\\%ls%lc",
+			lpcwPathName, lpcwPathName[lstrlenW(lpcwPathName) - 1] == L'\\' ? 0 : L'\\');
 		struct _DATA {
 			INT iLengthOfPathName;
 			HANDLE hFindFile;
@@ -109,7 +115,7 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 				{
 					wnsprintfW(lpwNewFileName, MAX_UNICODE_PATH, L"%ls%ls", lpwPathName, Win32_FindData.cFileName);
 				}
-				if (lpFindDiskData_Routine && lpFindDiskData_Routine(&Win32_FindData, lpwPathName, lpData) == PROGRESS_STOP)
+				if (lpFindDiskData_Routine && !lpFindDiskData_Routine(&Win32_FindData, lpwPathName, lpData))
 				{
 					while (TRUE)
 					{
@@ -141,11 +147,11 @@ BOOL FindDiskDataW(WCHAR wchDriveLetter, LPVOID lpData, LPFIND_DISK_DATA_ROUTINE
 	}
 }
 
-BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
+/*MICROUTILITYLIB_API*/ BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
 {
 	BOOL bSuccess = FALSE;
 	DWORD dwFileVersionInfoSize = GetFileVersionInfoSizeW(lpcwFileName, NULL);
-	if (lpwFileProductVersionBuffer && cchFileProductVersionBuffer && dwFileVersionInfoSize)
+	if (dwFileVersionInfoSize && lpwFileProductVersionBuffer && cchFileProductVersionBuffer)
 	{
 		HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 		if (hHeap)
@@ -176,7 +182,7 @@ BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBu
 	return bSuccess;
 }
 
-BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings)
+/*MICROUTILITYLIB_API*/ BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings)
 {
 	if (lpwStrings == NULL)
 	{
@@ -200,7 +206,7 @@ BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings)
 	return TRUE;
 }
 
-DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound)
+/*MICROUTILITYLIB_API*/ DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound)
 {
 	if (lpwStrings == NULL)
 	{
@@ -226,7 +232,7 @@ DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStr
 	return (DWORD)-1;
 }
 
-DWORD GetFileCRC32W(LPCWSTR lpcwFileName)
+/*MICROUTILITYLIB_API*/ DWORD GetFileCRC32W(LPCWSTR lpcwFileName)
 {
 	DWORD dwCRC32 = 0;
 	HANDLE hFile = CreateFileW(lpcwFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -269,35 +275,37 @@ DWORD GetFileCRC32W(LPCWSTR lpcwFileName)
 	return dwCRC32;
 }
 
-INT GetCurrentDpiX(VOID)
+/*MICROUTILITYLIB_API*/ INT GetCurrentDPI(AXIS Axis)
 {
-	INT iCurrentDpiX = USER_DEFAULT_SCREEN_DPI;
+	INT iCurrentDPI = USER_DEFAULT_SCREEN_DPI;
 	HDC hDC = GetDC(NULL);
 	if (hDC)
 	{
 		SetProcessDPIAware();
-		GetDeviceCaps(hDC, LOGPIXELSX);
-		iCurrentDpiX = GetDeviceCaps(hDC, LOGPIXELSX);
+		GetDeviceCaps(hDC, Axis);
+		iCurrentDPI = GetDeviceCaps(hDC, Axis);
 		ReleaseDC(NULL, hDC);
 	}
-	return iCurrentDpiX;
+	return iCurrentDPI;
 }
 
-INT GetCurrentDpiY(VOID)
+/*MICROUTILITYLIB_API*/ PVOID GetProcessBaseAddress(DWORD dwProcessID)
 {
-	INT iCurrentDpiY = USER_DEFAULT_SCREEN_DPI;
-	HDC hDC = GetDC(NULL);
-	if (hDC)
+	PVOID pBaseAddress = NULL;
+	HANDLE hToolhelp32Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, dwProcessID);
+	if (hToolhelp32Snapshot != INVALID_HANDLE_VALUE)
 	{
-		SetProcessDPIAware();
-		GetDeviceCaps(hDC, LOGPIXELSY);
-		iCurrentDpiY = GetDeviceCaps(hDC, LOGPIXELSY);
-		ReleaseDC(NULL, hDC);
+		MODULEENTRY32W ModuleEntry32 = { sizeof(ModuleEntry32) };
+		if (Module32FirstW(hToolhelp32Snapshot, &ModuleEntry32))
+		{
+			pBaseAddress = ModuleEntry32.modBaseAddr;
+		}
+		CloseHandle(hToolhelp32Snapshot);
 	}
-	return iCurrentDpiY;
+	return pBaseAddress;
 }
 
-VOID DeleteSelf(VOID)
+/*MICROUTILITYLIB_API*/ VOID DeleteSelf(VOID)
 {
 	WCHAR szCommandLine[MAX_PATH + 20], szProgramFileName[MAX_PATH];
 	GetModuleFileNameW(NULL, szProgramFileName, _countof(szProgramFileName));
