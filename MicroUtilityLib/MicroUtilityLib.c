@@ -1,14 +1,15 @@
 /*
 Source File: MicroUtilityLib.c
-Last Update: 2018/03/18
+Last Update: 2019/03/29
 Minimum Supported Client: Microsoft Windows Vista [Desktop Only]
 
-This project is hosted on https://github.com/Programmer-YangXun/MicroUtilityLib/
+This project is hosted on https://github.com/Hydr10n/MicroUtilityLib
 Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 */
 
 #define MICROUTILITYLIB_API extern __declspec(dllexport)
 #include "MicroUtilityLib.h"
+#pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "Kernel32.lib")
 #pragma comment(lib, "Shell32.lib")
@@ -182,6 +183,22 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	return bSuccess;
 }
 
+/*MICROUTILITYLIB_API*/ BOOL IsRunAsAdministrator(VOID)
+{
+	PSID AdministratorsGroup;
+	SID_IDENTIFIER_AUTHORITY SID_IdentifierAuthority = SECURITY_NT_AUTHORITY;
+	BOOL bIsRunAsAdministrator = AllocateAndInitializeSid(&SID_IdentifierAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &AdministratorsGroup);
+	if (bIsRunAsAdministrator)
+	{
+		if (!CheckTokenMembership(NULL, AdministratorsGroup, &bIsRunAsAdministrator))
+		{
+			bIsRunAsAdministrator = FALSE;
+		}
+		FreeSid(AdministratorsGroup);
+	}
+	return bIsRunAsAdministrator;
+}
+
 /*MICROUTILITYLIB_API*/ BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings)
 {
 	if (lpwStrings == NULL)
@@ -230,6 +247,27 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 		}
 	}
 	return (DWORD)-1;
+}
+
+/*MICROUTILITYLIB_API*/ DWORD GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine)
+{
+	LPWSTR lpwSystemErrorMessage;
+	DWORD dwRet = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		dwErrorCode,
+		MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+		(LPWSTR)&lpwSystemErrorMessage,
+		0,
+		NULL);
+	if (dwRet)
+	{
+		if (lpGetSystemErrorMessageRoutine)
+		{
+			lpGetSystemErrorMessageRoutine(lpwSystemErrorMessage);
+		}
+		LocalFree(lpwSystemErrorMessage);
+	}
+	return dwRet;
 }
 
 /*MICROUTILITYLIB_API*/ DWORD GetFileCRC32W(LPCWSTR lpcwFileName)

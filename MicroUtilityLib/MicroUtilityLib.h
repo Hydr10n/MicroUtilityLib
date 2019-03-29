@@ -1,9 +1,9 @@
 /*
 Header File: MicroUtilityLib.h
-Last Update: 2018/03/18
+Last Update: 2019/03/29
 Minimum Supported Client: Microsoft Windows 7 [Desktop Only]
 
-This project is hosted on https://github.com/Programmer-YangXun/MicroUtilityLib/
+This project is hosted on https://github.com/Hydr10n/MicroUtilityLib
 Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 */
 
@@ -54,8 +54,13 @@ typedef enum _AXIS { AxisX = LOGPIXELSX, AxisY = LOGPIXELSY } AXIS;
 typedef BOOL(CALLBACK* LPFIND_DISK_DATA_ROUTINEW)(LPWIN32_FIND_DATAW lpWin32_FindData, LPWSTR lpwPathName, LPVOID lpData);
 MICROUTILITYLIB_API BOOL FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine);
 
+typedef VOID(CALLBACK* LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW)(LPCWSTR lpcwSystemErrorMessage);
+MICROUTILITYLIB_API DWORD GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine);
+
+
 MICROUTILITYLIB_API BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists);
 MICROUTILITYLIB_API BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer);
+MICROUTILITYLIB_API BOOL IsRunAsAdministrator(VOID);
 MICROUTILITYLIB_API BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings);
 MICROUTILITYLIB_API DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound);
 MICROUTILITYLIB_API DWORD GetFileCRC32W(LPCWSTR lpcwFileName);
