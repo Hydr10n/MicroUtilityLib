@@ -1,6 +1,6 @@
 /*
 Source File: MicroUtilityLib.c
-Last Update: 2019/03/29
+Last Update: 2019/03/30
 Minimum Supported Client: Microsoft Windows Vista [Desktop Only]
 
 This project is hosted on https://github.com/Hydr10n/MicroUtilityLib
@@ -71,8 +71,8 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 			HeapDestroy(hHeap);
 			return FALSE;
 		}
-		wnsprintfW(lpwPathName, MAX_UNICODE_PATH, L"\\\\?\\%ls%lc",
-			lpcwPathName, lpcwPathName[lstrlenW(lpcwPathName) - 1] == L'\\' ? 0 : L'\\');
+		wnsprintfW(lpwPathName, MAX_UNICODE_PATH, L"\\\\?\\%ls", lpcwPathName);
+		PathRemoveBackslashW(lpwPathName);
 		struct _DATA {
 			INT iLengthOfPathName;
 			HANDLE hFindFile;
