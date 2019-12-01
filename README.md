@@ -3,43 +3,41 @@
 ## In Source File "MicroUtilityLib.c"
 ### Functions
 ```C
-BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists);
+BOOL WINAPI DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists);
 
 //This function attempts to find all files/folders which can be accessible on a disk, but might fail in some cases.
 //The description of LPFIND_DISK_DATA_ROUTINEW can be found in Header File "MicroUtilityLib.h"
-BOOL FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine);
+BOOL WINAPI FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine);
 
 //This function attempts to get product version of a Windows executable file, but might fail in some cases.
-BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer);
+BOOL WINAPI GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer);
 
 //Check if current process is run as Administrator
-BOOL IsRunAsAdministrator(VOID);
+BOOL WINAPI IsRunAsAdministrator(VOID);
 
 //This function uses Windows API StrCmpLogicalW which works better than string compare functions like strcmp to sort strings.
 //Strings are sorted in ascending.
-BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings);
+BOOL WINAPI SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings);
 
 //This function attempts to find a specified string in strings and return the index.
 //If the string is not found, this funtcion will return (DWORD)-1.
 //Strings must be sorted in ascending because this function uses binary search algorithm. This function is not case-sensitive.
-DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound);
+DWORD WINAPI FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound);
 
 //This functions attempts to format a string from a system error code, but might fail in some cases.
 //The description of LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW can be found in Header File "MicroUtilityLib.h"
-DWORD GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine);
+DWORD WINAPI GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine);
 
-DWORD GetFileCRC32W(LPCWSTR lpcwFileName);
+DWORD WINAPI GetFileCRC32W(LPCWSTR lpcwFileName);
 
-INT GetCurrentDPI(AXIS Axis);
+INT WINAPI GetCurrentDPI(AXIS Axis);
 
 //This function attempts to get the base address of a process, but might fail if no access rights.
-PVOID GetProcessBaseAddress(DWORD dwProcessID);
+PVOID WINAPI GetProcessBaseAddress(DWORD dwProcessID);
 
 //This function attempts to delete the executable file of current process, but might fail in some cases.
-VOID DeleteSelf(VOID);
+VOID WINAPI DeleteSelf(VOID);
 ```
-
-<!--more-->
 
 ## In Header File "MicroUtilityLib.h"
 ### Macros
