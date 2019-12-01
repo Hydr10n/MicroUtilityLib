@@ -1,14 +1,20 @@
 /*
-Source File: MicroUtilityLib.c
-Last Update: 2019/03/30
+Source File: MicroUtilityLib.cpp
+Last Update: 2019/12/01
 Minimum Supported Client: Microsoft Windows Vista [Desktop Only]
 
 This project is hosted on https://github.com/Hydr10n/MicroUtilityLib
 Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 */
 
-#define MICROUTILITYLIB_API extern __declspec(dllexport)
+#include <Windows.h>
+#include <ShellAPI.h>
+#include <ShlObj.h>
+#include <Shlwapi.h>
+#include <TlHelp32.h>
+#include <WinInet.h>
 #include "MicroUtilityLib.h"
+
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "Kernel32.lib")
@@ -18,7 +24,7 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 #pragma comment(lib, "Version.lib")
 #pragma comment(lib, "Wininet.lib")
 
-/*MICROUTILITYLIB_API*/ BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists)
+EXTERN BOOL WINAPI DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists)
 {
 	DWORD dwFlags;
 	if (InternetGetConnectedState(&dwFlags, 0))
@@ -39,9 +45,7 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 					{
 						WriteFile(hFile, byteBuffer, dwNumberOfBytesRead, &dwNumberOfBytesWritten, NULL);
 						if (dwNumberOfBytesRead != sizeof(byteBuffer))
-						{
 							break;
-						}
 					}
 					CloseHandle(hFile);
 					bIsSuccess = TRUE;
@@ -55,12 +59,10 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	return FALSE;
 }
 
-/*MICROUTILITYLIB_API*/ BOOL FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine)
+EXTERN BOOL WINAPI FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine)
 {
 	if (lpcwPathName == NULL || *lpcwPathName == 0)
-	{
 		return FALSE;
-	}
 	HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 	if (hHeap)
 	{
@@ -76,8 +78,8 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 		struct _DATA {
 			INT iLengthOfPathName;
 			HANDLE hFindFile;
-			struct _DATA *Previous, *Next;
-		} FindData, *pFindData = &FindData;
+			struct _DATA* Previous, * Next;
+		} FindData, * pFindData = &FindData;
 		FindData.Previous = NULL;
 		WIN32_FIND_DATAW Win32_FindData;
 		*Win32_FindData.cFileName = 0;
@@ -108,16 +110,11 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 					lpwPathName[pFindData->Next->iLengthOfPathName] = 0;
 					pFindData = pFindData->Next;
 					if (pFindData->Previous == &FindData)
-					{
 						continue;
-					}
 				}
 				else
-				{
 					wnsprintfW(lpwNewFileName, MAX_UNICODE_PATH, L"%ls%ls", lpwPathName, Win32_FindData.cFileName);
-				}
 				if (lpFindDiskData_Routine && !lpFindDiskData_Routine(&Win32_FindData, lpwPathName, lpData))
-				{
 					while (TRUE)
 					{
 						FindClose(pFindData->hFindFile);
@@ -127,7 +124,6 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 							return TRUE;
 						}
 					}
-				}
 			}
 			while (!FindNextFileW(pFindData->hFindFile, &Win32_FindData))
 			{
@@ -143,12 +139,10 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 		}
 	}
 	else
-	{
 		return FALSE;
-	}
 }
 
-/*MICROUTILITYLIB_API*/ BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
+EXTERN BOOL WINAPI GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer)
 {
 	BOOL bSuccess = FALSE;
 	DWORD dwFileVersionInfoSize = GetFileVersionInfoSizeW(lpcwFileName, NULL);
@@ -157,20 +151,20 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 		HANDLE hHeap = HeapCreate(HEAP_NO_SERIALIZE, 0, 0);
 		if (hHeap)
 		{
-			PVOID pvFileVersionInfo = HeapAlloc(hHeap, HEAP_NO_SERIALIZE, dwFileVersionInfoSize);
+			LPVOID pvFileVersionInfo = HeapAlloc(hHeap, HEAP_NO_SERIALIZE, dwFileVersionInfoSize);
 			if (pvFileVersionInfo && GetFileVersionInfoW(lpcwFileName, 0, dwFileVersionInfoSize, pvFileVersionInfo))
 			{
 				struct {
 					WORD wLanguage, wCodePage;
 				} *lpTranslate;
 				UINT cbTranslationSize;
-				if (VerQueryValueW(pvFileVersionInfo, L"\\VarFileInfo\\Translation", &lpTranslate, &cbTranslationSize) && cbTranslationSize / sizeof(*lpTranslate) != 0)
+				if (VerQueryValueW(pvFileVersionInfo, L"\\VarFileInfo\\Translation", (LPVOID*)&lpTranslate, &cbTranslationSize) && cbTranslationSize / sizeof(*lpTranslate) != 0)
 				{
 					UINT cbFileProductVersionSize;
 					LPWSTR lpwFileProductVersion;
 					WCHAR szSubBlock[50];
 					wnsprintfW(szSubBlock, _countof(szSubBlock), L"\\StringFileInfo\\%04X%04X\\ProductVersion", lpTranslate->wLanguage, lpTranslate->wCodePage);
-					if (VerQueryValueW(pvFileVersionInfo, szSubBlock, (PVOID*)&lpwFileProductVersion, &cbFileProductVersionSize))
+					if (VerQueryValueW(pvFileVersionInfo, szSubBlock, (LPVOID*)&lpwFileProductVersion, &cbFileProductVersionSize))
 					{
 						wnsprintfW(lpwFileProductVersionBuffer, cchFileProductVersionBuffer, lpwFileProductVersion);
 						bSuccess = TRUE;
@@ -183,7 +177,7 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	return bSuccess;
 }
 
-/*MICROUTILITYLIB_API*/ BOOL IsRunAsAdministrator(VOID)
+EXTERN BOOL WINAPI IsRunAsAdministrator(VOID)
 {
 	PSID AdministratorsGroup;
 	SID_IDENTIFIER_AUTHORITY SID_IdentifierAuthority = SECURITY_NT_AUTHORITY;
@@ -191,20 +185,16 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	if (bIsRunAsAdministrator)
 	{
 		if (!CheckTokenMembership(NULL, AdministratorsGroup, &bIsRunAsAdministrator))
-		{
 			bIsRunAsAdministrator = FALSE;
-		}
 		FreeSid(AdministratorsGroup);
 	}
 	return bIsRunAsAdministrator;
 }
 
-/*MICROUTILITYLIB_API*/ BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings)
+EXTERN BOOL WINAPI SortStringsLogicalW(LPWSTR* lpwStrings, DWORD dwNumberOfStrings)
 {
 	if (lpwStrings == NULL)
-	{
 		return FALSE;
-	}
 	BOOL bIsSwapped;
 	do {
 		bIsSwapped = FALSE;
@@ -223,33 +213,25 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	return TRUE;
 }
 
-/*MICROUTILITYLIB_API*/ DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound)
+EXTERN DWORD WINAPI FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR* lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound)
 {
 	if (lpwStrings == NULL)
-	{
 		return (DWORD)-1;
-	}
 	while (dwLowerBound <= dwUpperBound)
 	{
 		DWORD dwMiddle = (dwLowerBound + dwUpperBound) / 2;
 		INT iComparsionResult = StrCmpLogicalW(lpcwStringToFind, lpwStrings[dwMiddle]);
 		if (iComparsionResult == 1)
-		{
 			dwLowerBound = dwMiddle + 1;
-		}
 		else if (iComparsionResult == -1)
-		{
 			dwUpperBound = dwMiddle - 1;
-		}
 		else
-		{
 			return dwMiddle;
-		}
 	}
 	return (DWORD)-1;
 }
 
-/*MICROUTILITYLIB_API*/ DWORD GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine)
+EXTERN DWORD WINAPI GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine)
 {
 	LPWSTR lpwSystemErrorMessage;
 	DWORD dwRet = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
@@ -262,15 +244,13 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	if (dwRet)
 	{
 		if (lpGetSystemErrorMessageRoutine)
-		{
 			lpGetSystemErrorMessageRoutine(lpwSystemErrorMessage);
-		}
 		LocalFree(lpwSystemErrorMessage);
 	}
 	return dwRet;
 }
 
-/*MICROUTILITYLIB_API*/ DWORD GetFileCRC32W(LPCWSTR lpcwFileName)
+EXTERN DWORD WINAPI GetFileCRC32W(LPCWSTR lpcwFileName)
 {
 	DWORD dwCRC32 = 0;
 	HANDLE hFile = CreateFileW(lpcwFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -281,16 +261,10 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 		{
 			dwCRC32_Table[dwIndex] = dwIndex;
 			for (BYTE byteIndex = 0; byteIndex < 8; byteIndex++)
-			{
 				if (dwCRC32_Table[dwIndex] & 0x00000001)
-				{
 					dwCRC32_Table[dwIndex] = (dwCRC32_Table[dwIndex] >> 1) ^ 0xEDB88320;
-				}
 				else
-				{
 					dwCRC32_Table[dwIndex] >>= 1;
-				}
-			}
 		}
 		DWORD dwNumberOfBytesRead;
 		BYTE byteCRC32Buffer[8 * 1024];
@@ -300,20 +274,16 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 			DWORD dwBytes = dwNumberOfBytesRead;
 			PBYTE pCRC32Buffer = byteCRC32Buffer;
 			while (dwBytes--)
-			{
 				dwCRC32 = (dwCRC32 >> 8) ^ dwCRC32_Table[(dwCRC32 & 0xff) ^ *(pCRC32Buffer++)];
-			}
 			dwCRC32 ^= 0xffffffff;
 			if (dwNumberOfBytesRead != sizeof(byteCRC32Buffer))
-			{
 				break;
-			}
 		}
 	}
 	return dwCRC32;
 }
 
-/*MICROUTILITYLIB_API*/ INT GetCurrentDPI(AXIS Axis)
+EXTERN INT WINAPI GetCurrentDPI(AXIS Axis)
 {
 	INT iCurrentDPI = USER_DEFAULT_SCREEN_DPI;
 	HDC hDC = GetDC(NULL);
@@ -327,7 +297,7 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	return iCurrentDPI;
 }
 
-/*MICROUTILITYLIB_API*/ PVOID GetProcessBaseAddress(DWORD dwProcessID)
+EXTERN PVOID WINAPI GetProcessBaseAddress(DWORD dwProcessID)
 {
 	PVOID pBaseAddress = NULL;
 	HANDLE hToolhelp32Snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, dwProcessID);
@@ -335,15 +305,13 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 	{
 		MODULEENTRY32W ModuleEntry32 = { sizeof(ModuleEntry32) };
 		if (Module32FirstW(hToolhelp32Snapshot, &ModuleEntry32))
-		{
 			pBaseAddress = ModuleEntry32.modBaseAddr;
-		}
 		CloseHandle(hToolhelp32Snapshot);
 	}
 	return pBaseAddress;
 }
 
-/*MICROUTILITYLIB_API*/ VOID DeleteSelf(VOID)
+EXTERN VOID WINAPI DeleteSelf(VOID)
 {
 	WCHAR szCommandLine[MAX_PATH + 20], szProgramFileName[MAX_PATH];
 	GetModuleFileNameW(NULL, szProgramFileName, _countof(szProgramFileName));

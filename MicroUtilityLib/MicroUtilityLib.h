@@ -1,6 +1,6 @@
 /*
 Header File: MicroUtilityLib.h
-Last Update: 2019/03/29
+Last Update: 2019/12/01
 Minimum Supported Client: Microsoft Windows 7 [Desktop Only]
 
 This project is hosted on https://github.com/Hydr10n/MicroUtilityLib
@@ -9,12 +9,13 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 
 #pragma once
 
-#ifndef MICROUTILITYLIB_API
-#define MICROUTILITYLIB_API extern __declspec(dllimport)
+#ifdef __cplusplus
+#define EXTERN extern "C"
+#else
+#define EXTERN extern
 #endif
 
-//Enable Win32 Visual Styles
-#define ENABLE_WIN32_VISUAL_STYLES
+#pragma region Enable Win32 Visual Styles
 #ifdef ENABLE_WIN32_VISUAL_STYLES
 #ifdef _M_IX86
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -26,13 +27,9 @@ Copyright (C) 2018 - 2019 Programmer-Yang_Xun@outlook.com. All Rights Reserved.
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 #endif
+#pragma endregion
 
 #include <Windows.h>
-#include <ShellAPI.h>
-#include <ShlObj.h>
-#include <Shlwapi.h>
-#include <TlHelp32.h>
-#include <WinInet.h>
 
 #define MAX_DRIVE_NUMBER 26
 #define MAX_UNICODE_PATH UNICODE_STRING_MAX_CHARS
@@ -52,19 +49,17 @@ typedef enum _AXIS { AxisX = LOGPIXELSX, AxisY = LOGPIXELSY } AXIS;
 
 //LPFIND_DISK_DATA_ROUTINEW: return FALSE to stop function FindDiskDataW
 typedef BOOL(CALLBACK* LPFIND_DISK_DATA_ROUTINEW)(LPWIN32_FIND_DATAW lpWin32_FindData, LPWSTR lpwPathName, LPVOID lpData);
-MICROUTILITYLIB_API BOOL FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine);
+EXTERN BOOL WINAPI FindDiskDataW(LPCWSTR lpcwPathName, LPVOID lpData, LPFIND_DISK_DATA_ROUTINEW lpFindDiskData_Routine);
 
 typedef VOID(CALLBACK* LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW)(LPCWSTR lpcwSystemErrorMessage);
-MICROUTILITYLIB_API DWORD GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine);
+EXTERN DWORD WINAPI GetSystemErrorMessageW(DWORD dwErrorCode, LPGET_SYSTEM_ERROR_MESSAGE_ROUTINEW lpGetSystemErrorMessageRoutine);
 
-
-MICROUTILITYLIB_API BOOL DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists);
-MICROUTILITYLIB_API BOOL GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer);
-MICROUTILITYLIB_API BOOL IsRunAsAdministrator(VOID);
-MICROUTILITYLIB_API BOOL SortStringsLogicalW(LPWSTR *lpwStrings, DWORD dwNumberOfStrings);
-MICROUTILITYLIB_API DWORD FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR *lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound);
-MICROUTILITYLIB_API DWORD GetFileCRC32W(LPCWSTR lpcwFileName);
-MICROUTILITYLIB_API INT GetCurrentDpiX(VOID);
-MICROUTILITYLIB_API INT GetCurrentDpiY(VOID);
-MICROUTILITYLIB_API PVOID GetProcessBaseAddress(DWORD dwProcessID);
-MICROUTILITYLIB_API VOID DeleteSelf(VOID);
+EXTERN BOOL WINAPI DownloadFileFromInternetW(LPCWSTR lpcwUrl, LPCWSTR lpcwNewFileName, BOOL bFailIfFileExists);
+EXTERN BOOL WINAPI GetFileProductVersionW(LPCWSTR lpcwFileName, LPWSTR lpwFileProductVersionBuffer, DWORD cchFileProductVersionBuffer);
+EXTERN BOOL WINAPI IsRunAsAdministrator(VOID);
+EXTERN BOOL WINAPI SortStringsLogicalW(LPWSTR* lpwStrings, DWORD dwNumberOfStrings);
+EXTERN DWORD WINAPI FindStringInSortedStringsLogicalW(LPCWSTR lpcwStringToFind, LPWSTR* lpwStrings, DWORD dwLowerBound, DWORD dwUpperBound);
+EXTERN DWORD WINAPI GetFileCRC32W(LPCWSTR lpcwFileName);
+EXTERN INT WINAPI GetCurrentDPI(AXIS Axis);
+EXTERN PVOID WINAPI GetProcessBaseAddress(DWORD dwProcessID);
+EXTERN VOID WINAPI DeleteSelf(VOID);

@@ -1,3 +1,14 @@
 LIBRARY
 
 EXPORTS
+	DownloadFileFromInternetW
+	FindDiskDataW
+	GetFileProductVersionW
+	IsRunAsAdministrator
+	SortStringsLogicalW
+	FindStringInSortedStringsLogicalW
+	GetSystemErrorMessageW
+	GetFileCRC32W
+	GetCurrentDPI
+	GetProcessBaseAddress
+	DeleteSelf
